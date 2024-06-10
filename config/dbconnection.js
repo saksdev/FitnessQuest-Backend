@@ -1,8 +1,9 @@
-//dbconnection.js
 const mongoose = require('mongoose');
+const mongoURI = 'mongodb+srv://FitnessQuest:Saksham123@fitnessquest.4oicwkm.mongodb.net/UserData?retryWrites=true&w=majority';
 
-mongoose.connect('mongodb+srv://FitnessQuest:Saksham123@fitnessquest.4oicwkm.mongodb.net/UserData')
-	.then(() => console.log('Connected to MongoDB!'))
-	.catch(err => console.error('Error connecting to MongoDB:', err));
+mongoose.connect(mongoURI)
+  .then(() => console.log('MongoDB connected'))
+  .catch((err) => console.log(err));
 
-module.exports = mongoose;
+
+  module.exports = mongoose;
