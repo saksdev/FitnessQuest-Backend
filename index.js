@@ -4,10 +4,9 @@ const cors = require('cors');
 const db = require('./config/dbconnection');
 const signupController = require('./controller/Signup');
 const loginController = require('./controller/login');
-const userController = require('./controller/userController');
 
-// Import the authenticateToken function from the module
-const { authenticateToken } = require('./models/authenticateToken');
+// Import the authenticateToken middleware and getUserDashboardData function
+const { authenticateToken, getUserDashboardData } = require('./api/UserDashboard');
 
 const app = express();
 app.use(express.json());
@@ -28,7 +27,9 @@ app.post("/login", async (req, res) => {
   return res.status(result.status).json({ message: result.message, token: result.token });
 });
 
-app.get('/api/user', authenticateToken, userController.getUserData);
+// Fetch user data for the dashboard
+app.get('/api/userdashboard', authenticateToken, getUserDashboardData);
+
 
 app.listen(3000, () => {
   console.log('Server is running on port 3000');
