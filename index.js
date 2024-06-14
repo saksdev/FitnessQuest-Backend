@@ -1,36 +1,50 @@
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const db = require('./config/dbconnection');
-const signupController = require('./controller/Signup');
-const loginController = require('./controller/login');
+const { isAuthenticated } = require('./middlewares/auth');
+const { handleError } = require('./utils/errorhandler');
+const corsMiddleware = require('./config/corsConfig');
 
-// Import the authenticateToken middleware and getUserDashboardData function
-const { authenticateToken, getUserDashboardData } = require('./api/UserDashboard');
+const signupController = require('./controller/Signup');
+const loginController = require('./controller/Login');
 
 const app = express();
+
+// Use CORS middleware
+app.use(corsMiddleware);
+
+app.use(cookieParser());
 app.use(express.json());
-app.use(cors());
 
-app.get('/', function (req, res) {
-  res.send('Hello World');
+app.get('/', (req, res) => {
+    res.send('Fitness Quest');
 });
 
-// Signup
-app.post("/signup", async (req, res) => {
-  await signupController.signup(req, res);
+app.post('/signup', async (req, res) => {
+    await signupController.signup(req, res);
 });
 
-// Login
-app.post("/login", async (req, res) => {
-  let result = await loginController.login(req);
-  return res.status(result.status).json({ message: result.message, token: result.token });
+app.post('/login', async (req, res) => {
+    await loginController.login(req, res);
 });
 
-// Fetch user data for the dashboard
-app.get('/api/userdashboard', authenticateToken, getUserDashboardData);
+// Auth check route
+app.get('/auth', isAuthenticated, (req, res) => {
+    res.status(200).json({ message: 'Authenticated' });
+});
 
+// Protected route
+app.get('/dashboard', isAuthenticated, (req, res) => {
+    res.send(`Welcome to the dashboard, User ID: ${req.userId}`);
+});
 
-app.listen(3000, () => {
-  console.log('Server is running on port 3000');
+// Error handling middleware
+app.use((err, req, res, next) => {
+    handleError(err, res);
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });
