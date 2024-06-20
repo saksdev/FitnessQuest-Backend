@@ -29,10 +29,11 @@ const getUserDashboardData = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Return the user data, excluding sensitive fields if needed
+    // Return the user data
     const userData = {
+      userId: user._id,
       name: user.name,
-      // email: user.email,
+      // Add other fields as needed
     };
 
     res.json(userData);
