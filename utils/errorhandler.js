@@ -1,5 +1,5 @@
 class ErrorHandler extends Error {
-    constructor(message, statusCode) {
+    constructor(message, statusCode = 500) {
         super(message);
         this.statusCode = statusCode;
         Error.captureStackTrace(this, this.constructor);
@@ -7,7 +7,7 @@ class ErrorHandler extends Error {
 }
 
 const handleError = (err, res) => {
-    const { statusCode, message } = err;
+    const { statusCode = 500, message } = err;
     res.status(statusCode).json({
         success: false,
         statusCode,
@@ -15,7 +15,4 @@ const handleError = (err, res) => {
     });
 };
 
-module.exports = {
-    ErrorHandler,
-    handleError,
-};
+module.exports = { ErrorHandler, handleError };

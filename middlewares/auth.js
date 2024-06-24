@@ -4,15 +4,26 @@ const { ErrorHandler } = require('../utils/errorhandler');
 const isAuthenticated = async (req, res, next) => {
     try {
         const token = req.cookies['token'];
+        
+        console.log('Received token:', token); // Debug log
+
         if (!token) {
+            console.log('No token found in cookies'); // Debug log
             return next(new ErrorHandler('Not authenticated', 401));
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.userId = decoded.userId;
-        next();
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            console.log('Decoded token:', decoded); // Debug log
+            req.userId = decoded.userId;
+            next();
+        } catch (jwtError) {
+            console.error('JWT verification failed:', jwtError); // Debug log
+            return next(new ErrorHandler('Invalid token', 401));
+        }
     } catch (error) {
-        next(new ErrorHandler('Not authenticated', 401));
+        console.error('Authentication error:', error); // Debug log
+        next(new ErrorHandler('Authentication failed', 401));
     }
 };
 

@@ -1,4 +1,3 @@
-// models/User.js
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
@@ -15,7 +14,27 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-}, { timestamps: true });
+  profilePicture: {
+    type: String,
+    default: null,
+  },
+  XP: {
+    type: Number,
+    default: 0,
+  },
+  Points: {
+    type: Number,
+    default: 0,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  }
+});
 
 const User = mongoose.model('User', userSchema);
 
