@@ -91,36 +91,7 @@ const profileController = {
       console.error('Error in updatePoints:', error);
       res.status(500).json({ message: 'Server error', error: error.message });
     }
-  },
-
-  // Upload Profile Picture
-  uploadProfilePicture: async (req, res) => {
-    try {
-      console.log('uploadProfilePicture called');
-      console.log('Request body:', req.body);
-      console.log('Request files:', req.files);
-      console.log('Request file:', req.file);
-  
-      if (!req.file) {
-        return res.status(400).json({ success: false, message: 'No file uploaded' });
-      }
-  
-      const profile = await Profile.findById(req.userId);
-      if (!profile) {
-        return res.status(404).json({ success: false, message: 'Profile not found' });
-      }
-  
-      profile.profilePicture = req.file.path;
-      profile.updatedAt = Date.now();
-  
-      await profile.save();
-      res.json({ success: true, message: 'Profile picture updated successfully', profilePicture: profile.profilePicture });
-    } catch (error) {
-      console.error('Error in uploadProfilePicture:', error);
-      res.status(500).json({ success: false, message: 'Server error: ' + error.message });
-    }
   }
-
 };
 
 module.exports = profileController;

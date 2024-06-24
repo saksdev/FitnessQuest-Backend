@@ -14,10 +14,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  profilePicture: {
-    type: String,
-    default: null,
-  },
   XP: {
     type: Number,
     default: 0,
