@@ -11,7 +11,12 @@ const signupController = require('./controller/SignupController');
 const loginController = require('./controller/LoginController');
 const contactController = require('./controller/contactController');
 const profileRoutes = require('./Route/profileRoutes');
+const settingsRoutes = require('./Route/settingsRoutes');
+const uploadRoutes = require('./Route/uploadRoutes');
 const { logoutHandler } = require('./Route/Logout');
+const publicProfileRoutes = require('./Route/publicProfile');
+
+const forgotPasswordController = require('./controller/ForgotPasswordController');
 
 const app = express();
 app.use(corsMiddleware);
@@ -38,11 +43,25 @@ app.post('/api/contact', contactController.sendContactForm);
 // Logout route
 app.post('/logout', isAuthenticated, logoutHandler);
 
-// MyProfile routes - ensure these use the isAuthenticated middleware
+// // Forgot Password routes
+app.post('/forgot-password', forgotPasswordController.forgotPassword);
+app.post('/reset-password', forgotPasswordController.resetPassword);
+
+// Profile routes - for viewing profile and updating game-related data
 app.use('/api/profile', isAuthenticated, (req, res, next) => {
     console.log('Profile route accessed. User ID:', req.userId);
     next();
 }, profileRoutes);
+
+// Settings routes - for updating profile information
+app.use('/api/settings', isAuthenticated, settingsRoutes);
+
+// Upload routes - ensure this route is correctly set
+app.use('/api/profile', isAuthenticated, uploadRoutes);
+
+// Use the public profile routes
+app.use('/api', publicProfileRoutes);
+
 
 // Error handling middleware
 app.use((err, req, res, next) => {

@@ -1,8 +1,7 @@
-const Profile = require('../models/User');
+const User = require('../models/User');
 const { ErrorHandler } = require('../utils/errorhandler');
 
 const profileController = {
-  // Get profile
   getProfile: async (req, res, next) => {
     try {
       console.log('getProfile called. User ID:', req.userId);
@@ -12,7 +11,7 @@ const profileController = {
         return next(new ErrorHandler('User not authenticated', 401));
       }
 
-      const profile = await Profile.findById(req.userId);
+      const profile = await User.findById(req.userId);
       console.log('Profile found:', profile);
 
       if (!profile) {
@@ -20,76 +19,70 @@ const profileController = {
         return next(new ErrorHandler('Profile not found', 404));
       }
 
-      res.json(profile);
+      const profileData = {
+        name: profile.name,
+        email: profile.email,
+        username: profile.username,
+        XP: profile.XP,
+        Points: profile.Points,
+        level: profile.level,
+        bio: profile.Bio,
+        description: profile.description,
+        profilePicture: profile.profilePicture,
+        createdAt: profile.createdAt,
+        twitterUrl: profile.twitterUrl
+      };
+
+      res.json(profileData);
     } catch (error) {
       console.error('Error in getProfile:', error);
       next(new ErrorHandler('Server error', 500));
     }
   },
 
-  // Update profile
-  updateProfile: async (req, res) => {
-    try {
-      const { name, email } = req.body;
-
-      const profile = await Profile.findById(req.userId);
-
-      if (!profile) {
-        return res.status(404).json({ message: 'Profile not found' });
-      }
-
-      if (name) profile.name = name;
-      if (email) profile.email = email;
-
-      profile.updatedAt = Date.now();
-
-      await profile.save();
-      res.json(profile);
-    } catch (error) {
-      console.error('Error in updateProfile:', error);
-      res.status(500).json({ message: 'Server error', error: error.message });
-    }
-  },
-
-  // Update XP
-  updateXP: async (req, res) => {
+  updateXP: async (req, res, next) => {
     try {
       const { xp } = req.body;
-      const profile = await Profile.findById(req.userId);
+      const profile = await User.findById(req.userId);
 
       if (!profile) {
-        return res.status(404).json({ message: 'Profile not found' });
+        return next(new ErrorHandler('Profile not found', 404));
       }
 
       profile.XP += xp;
       profile.updatedAt = Date.now();
 
+      // Check if level up is needed
+      if (profile.XP >= profile.level * 100) {  // Simple level up condition
+        profile.level += 1;
+        profile.description = `Level ${profile.level} User`;  // Update description based on level
+      }
+
       await profile.save();
-      res.json(profile);
+      res.json({ XP: profile.XP, level: profile.level, description: profile.description });
     } catch (error) {
       console.error('Error in updateXP:', error);
-      res.status(500).json({ message: 'Server error', error: error.message });
+      next(new ErrorHandler('Server error', 500));
     }
   },
 
-  // Update Points
-  updatePoints: async (req, res) => {
+  updatePoints: async (req, res, next) => {
     try {
       const { points } = req.body;
-      const profile = await Profile.findById(req.userId);
+      const profile = await User.findById(req.userId);
 
       if (!profile) {
-        return res.status(404).json({ message: 'Profile not found' });
+        return next(new ErrorHandler('Profile not found', 404));
       }
 
       profile.Points += points;
       profile.updatedAt = Date.now();
 
       await profile.save();
-      res.json(profile);
+      res.json({ Points: profile.Points });
     } catch (error) {
       console.error('Error in updatePoints:', error);
-      res.status(500).json({ message: 'Server error', error: error.message });
+      next(new ErrorHandler('Server error', 500));
     }
   }
 };

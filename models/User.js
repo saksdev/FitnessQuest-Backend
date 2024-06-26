@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    required: true,
+    unique: true,
+  },
   name: {
     type: String,
     required: true,
@@ -21,6 +26,26 @@ const userSchema = new mongoose.Schema({
   Points: {
     type: Number,
     default: 0,
+  },
+  level: {
+    type: Number,
+    default: 1,
+  },
+  description: {
+    type: String,
+    default: 'Beginner',
+  },
+  twitterUrl: {
+    type: String,
+    default: ''
+  },
+  Bio: {
+    type: String,
+    default: '',
+  },
+  profilePicture: {
+    type: String,
+    default: '',
   },
   createdAt: {
     type: Date,
