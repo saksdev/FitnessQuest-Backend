@@ -27,10 +27,11 @@ router.get('/public-profile/:username', async (req, res, next) => {
     const publicProfileData = {
       name: user.name,
       username: user.username,
-      bio: user.Bio || '', // Using 'Bio' as per your User model
+      bio: user.bio || '', // Using 'Bio' as per your User model
       profilePicture: user.profilePicture,
       XP: user.XP,
       level: user.level,
+      twitter: user.twitterUrl,
       description: user.description
     };
 

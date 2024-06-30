@@ -16,6 +16,8 @@ const uploadRoutes = require('./Route/uploadRoutes');
 const { logoutHandler } = require('./Route/Logout');
 const publicProfileRoutes = require('./Route/publicProfile');
 
+const dashboardFitbit = require('./Route/dashboardfitbit.js');
+
 const forgotPasswordController = require('./controller/ForgotPasswordController');
 
 const app = express();
@@ -23,29 +25,29 @@ app.use(corsMiddleware);
 app.use(cookieParser());
 app.use(express.json());
 
+// Use the public profile routes
+app.use('/api', publicProfileRoutes);
+
 // Signup route
 app.post('/signup', signupController.signup);
 
 // Login route
 app.post('/login', loginController.login);
 
-// Auth check route
-app.get('/auth', isAuthenticated, (req, res) => {
-    res.status(200).json({ message: 'Authenticated' });
-});
-
-// Protected dashboard route
-app.get('/dashboard', authenticateToken, getUserDashboardData);
+// Logout route
+app.post('/logout', isAuthenticated, logoutHandler);
 
 // Contact route
 app.post('/api/contact', contactController.sendContactForm);
 
-// Logout route
-app.post('/logout', isAuthenticated, logoutHandler);
-
-// // Forgot Password routes
+// Forgot Password routes
 app.post('/forgot-password', forgotPasswordController.forgotPassword);
 app.post('/reset-password', forgotPasswordController.resetPassword);
+
+// Auth check route
+app.get('/auth', isAuthenticated, (req, res) => {
+    res.status(200).json({ message: 'Authenticated' });
+});
 
 // Profile routes - for viewing profile and updating game-related data
 app.use('/api/profile', isAuthenticated, (req, res, next) => {
@@ -56,11 +58,14 @@ app.use('/api/profile', isAuthenticated, (req, res, next) => {
 // Settings routes - for updating profile information
 app.use('/api/settings', isAuthenticated, settingsRoutes);
 
-// Upload routes - ensure this route is correctly set
+// Upload routes
 app.use('/api/profile', isAuthenticated, uploadRoutes);
 
-// Use the public profile routes
-app.use('/api', publicProfileRoutes);
+// Protected dashboard route
+app.get('/dashboard', authenticateToken, getUserDashboardData);
+
+// Use dashboard routes
+app.use('/api/dashboard', isAuthenticated, dashboardFitbit);
 
 
 // Error handling middleware

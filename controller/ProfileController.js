@@ -26,7 +26,7 @@ const profileController = {
         XP: profile.XP,
         Points: profile.Points,
         level: profile.level,
-        bio: profile.Bio,
+        bio: profile.bio,
         description: profile.description,
         profilePicture: profile.profilePicture,
         createdAt: profile.createdAt,

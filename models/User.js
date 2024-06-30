@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
+  role: {
+    type: String,
+    enum: ['user', 'admin'],
+    default: 'user'
+  },
   username: {
     type: String,
     required: true,
@@ -39,7 +44,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
-  Bio: {
+  bio: {
     type: String,
     default: '',
   },
@@ -54,7 +59,10 @@ const userSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now,
-  }
+  },
+  fitbitAccessToken: String,
+  fitbitRefreshToken: String,
+  fitbitUserId: String
 });
 
 const User = mongoose.model('User', userSchema);
