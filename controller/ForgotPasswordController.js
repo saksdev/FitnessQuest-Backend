@@ -1,6 +1,6 @@
 const User = require('../models/User');
 const crypto = require('crypto');
-const sendEmail = require('../utils/sendEmail');
+const sendEmail = require('../utils/sendEmail.js');
 
 exports.forgotPassword = async (req, res, next) => {
   try {

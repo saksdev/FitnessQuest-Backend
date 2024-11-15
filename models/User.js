@@ -60,9 +60,18 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-  fitbitAccessToken: String,
-  fitbitRefreshToken: String,
-  fitbitUserId: String
+  fitbitAccessToken: {
+    type: String,
+    default: null
+  },
+  fitbitRefreshToken: {
+    type: String,
+    default: null
+  },
+  fitbitUserId: {
+    type: String,
+    default: null
+  }
 });
 
 const User = mongoose.model('User', userSchema);

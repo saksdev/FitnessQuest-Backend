@@ -15,9 +15,7 @@ const settingsRoutes = require('./Route/settingsRoutes');
 const uploadRoutes = require('./Route/uploadRoutes');
 const { logoutHandler } = require('./Route/Logout');
 const publicProfileRoutes = require('./Route/publicProfile');
-
 const dashboardFitbit = require('./Route/dashboardfitbit.js');
-
 const forgotPasswordController = require('./controller/ForgotPasswordController');
 
 const app = express();
@@ -65,8 +63,7 @@ app.use('/api/profile', isAuthenticated, uploadRoutes);
 app.get('/dashboard', authenticateToken, getUserDashboardData);
 
 // Use dashboard routes
-app.use('/api/dashboard', isAuthenticated, dashboardFitbit);
-
+app.use('/api/dashboard', dashboardFitbit);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

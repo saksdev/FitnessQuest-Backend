@@ -1,114 +1,124 @@
 const express = require('express');
-const router = express.Router();
 const axios = require('axios');
-const User = require('../models/User')
+const User = require('../models/User');
+const { isAuthenticated } = require('../middlewares/auth');
 
-// Function to refresh Fitbit token
-async function refreshFitbitToken(userId, refresh_token) {
+const router = express.Router();
+
+// Function to exchange code for tokens
+async function exchangeCodeForTokens(code) {
+    const params = new URLSearchParams();
+    params.append('grant_type', 'authorization_code');
+    params.append('code', code);
+    params.append('redirect_uri', process.env.FITBIT_CALLBACK_URL);
+
+    const auth = Buffer.from(`${process.env.FITBIT_CLIENT_ID}:${process.env.FITBIT_CLIENT_SECRET}`).toString('base64');
+
     try {
-        const response = await axios.post('https://api.fitbit.com/oauth2/token', null, {
-            params: {
-                grant_type: 'refresh_token',
-                refresh_token,
-                client_id: process.env.FITBIT_CLIENT_ID,
-                client_secret: process.env.FITBIT_CLIENT_SECRET
-            },
+        const response = await axios.post('https://api.fitbit.com/oauth2/token', params, {
             headers: {
+                'Authorization': `Basic ${auth}`,
                 'Content-Type': 'application/x-www-form-urlencoded'
             }
         });
-
-        const { access_token, refresh_token: new_refresh_token } = response.data;
-        
-        // Update tokens in the database
-        await User.findByIdAndUpdate(userId, {
-            fitbitAccessToken: access_token,
-            fitbitRefreshToken: new_refresh_token
-        });
-
-        return access_token;
+        return response.data;
     } catch (error) {
-        console.error('Error refreshing Fitbit token:', error);
+        console.error('Error exchanging code for tokens:');
+        console.error('Status:', error.response ? error.response.status : 'Unknown');
+        console.error('Data:', error.response ? error.response.data : 'No response data');
+        console.error('Headers:', error.response ? error.response.headers : 'No headers');
         throw error;
     }
 }
 
-// Route to initiate Fitbit OAuth flow
-router.get('/connect-fitbit', (req, res) => {
-    const authUrl = `https://www.fitbit.com/oauth2/authorize?response_type=code&client_id=${process.env.FITBIT_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.FITBIT_CALLBACK_URL)}&scope=activity%20heartrate%20location%20nutrition%20profile%20settings%20sleep%20social%20weight`;
+// Initiate Fitbit connection
+router.get('/connect-fitbit', isAuthenticated, (req, res) => {
+    console.log('Initiating Fitbit connection for user:', req.userId);
+    const state = req.userId;
+    const scopes = 'activity heartrate location nutrition profile settings sleep social weight';
+    const authUrl = `https://www.fitbit.com/oauth2/authorize?response_type=code&client_id=${process.env.FITBIT_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.FITBIT_CALLBACK_URL)}&scope=${encodeURIComponent(scopes)}&state=${state}`;
     res.redirect(authUrl);
 });
 
-// Fitbit OAuth callback route
+// Fitbit callback
 router.get('/fitbit/callback', async (req, res) => {
-    const { code } = req.query;
+    const { code, state, error } = req.query;
+
+    console.log('Received callback with:');
+    console.log('Code:', code);
+    console.log('State:', state);
+    console.log('Error:', error);
+
+    if (error) {
+        console.error('Error in Fitbit callback:', error);
+        return res.redirect(`${process.env.FRONTEND_URL}/dashboard?fitbit_connection=failed&error=${encodeURIComponent(error)}`);
+    }
+
     try {
-        const tokenResponse = await axios.post('https://api.fitbit.com/oauth2/token', null, {
-            params: {
-                code,
-                grant_type: 'authorization_code',
-                client_id: process.env.FITBIT_CLIENT_ID,
-                client_secret: process.env.FITBIT_CLIENT_SECRET,
-                redirect_uri: process.env.FITBIT_CALLBACK_URL
-            },
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            }
+        if (!code) {
+            throw new Error('No authorization code received from Fitbit');
+        }
+
+        const tokens = await exchangeCodeForTokens(code);
+        console.log('Received tokens:', tokens);
+
+        const userId = state;
+
+        if (!userId) {
+            throw new Error('No user ID found in state parameter');
+        }
+
+        await User.findByIdAndUpdate(userId, {
+            fitbitAccessToken: tokens.access_token,
+            fitbitRefreshToken: tokens.refresh_token,
+            fitbitUserId: tokens.user_id
         });
 
-        const { access_token, refresh_token, user_id } = tokenResponse.data;
-
-        // Store tokens in your database associated with the user
-        await User.findByIdAndUpdate(req.userId, {
-            fitbitAccessToken: access_token,
-            fitbitRefreshToken: refresh_token,
-            fitbitUserId: user_id
-        });
-
-        res.redirect('/dashboard'); // Redirect to your dashboard page
+        res.redirect(`${process.env.FRONTEND_URL}/dashboard?fitbit_connection=success`);
     } catch (error) {
         console.error('Error in Fitbit callback:', error);
-        res.status(500).json({ message: 'Error connecting to Fitbit' });
+        res.redirect(`${process.env.FRONTEND_URL}/dashboard?fitbit_connection=failed&error=${encodeURIComponent(error.message)}`);
     }
 });
 
-// Route to fetch Fitbit data
-router.get('/fitbit-data', async (req, res) => {
+// Check Fitbit connection status
+router.get('/fitbit-status', isAuthenticated, async (req, res) => {
+    try {
+        console.log('Checking Fitbit status for user:', req.userId);
+        const user = await User.findById(req.userId);
+        if (user) {
+            const isConnected = !!user.fitbitAccessToken;
+            console.log('User Fitbit connection status:', isConnected);
+            res.json({ isConnected });
+        } else {
+            console.log('User not found with ID:', req.userId);
+            res.status(404).json({ message: 'User not found' });
+        }
+    } catch (error) {
+        console.error('Error checking Fitbit status:', error);
+        res.status(500).json({ message: 'Error checking Fitbit status', error: error.message });
+    }
+});
+
+// Fetch Fitbit data
+router.get('/fitbit-data', isAuthenticated, async (req, res) => {
     try {
         const user = await User.findById(req.userId);
         if (!user.fitbitAccessToken) {
             return res.status(400).json({ message: 'Fitbit not connected' });
         }
 
-        let accessToken = user.fitbitAccessToken;
-
-        try {
-            const response = await axios.get('https://api.fitbit.com/1/user/-/activities/steps/date/today/1w.json', {
-                headers: {
-                    Authorization: `Bearer ${accessToken}`
-                }
-            });
-            res.json(response.data);
-        } catch (error) {
-            if (error.response && error.response.status === 401) {
-                // Token expired, try to refresh
-                accessToken = await refreshFitbitToken(req.userId, user.fitbitRefreshToken);
-                const response = await axios.get('https://api.fitbit.com/1/user/-/activities/steps/date/today/1w.json', {
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`
-                    }
-                });
-                res.json(response.data);
-            } else {
-                throw error;
+        const response = await axios.get('https://api.fitbit.com/1/user/-/activities/steps/date/today/7d.json', {
+            headers: {
+                Authorization: `Bearer ${user.fitbitAccessToken}`
             }
-        }
+        });
+
+        res.json(response.data);
     } catch (error) {
         console.error('Error fetching Fitbit data:', error);
         res.status(500).json({ message: 'Error fetching Fitbit data' });
     }
 });
-
-// Add more dashboard-related routes here
 
 module.exports = router;
